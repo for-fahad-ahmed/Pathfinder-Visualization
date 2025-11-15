@@ -224,6 +224,43 @@ def bfs(draw, grid, start, end):
         if current != start:
             current.makeClosed()
 
+
+def dfs(draw, grid, start, end):
+    stack = [start]
+    visited = set()
+    came_from = {}
+
+    while len(stack) > 0:
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return False
+
+        current = stack.pop()
+
+        if current not in visited:
+            visited.add(current)
+
+            if current == end:
+                reconstructPath(came_from, current, draw)
+                end.makeEnd()
+                return True
+
+            for neighbour in current.neighbours:
+                if neighbour not in visited:
+                    stack.append(neighbour)
+                    came_from[neighbour] = current
+
+                    if neighbour != end:
+                        neighbour.makeOpen()
+
+            if current != start:
+                current.makeClosed()
+
+            draw()
+
+
 def main(screen, width):
     grid = createGrid()
 
@@ -286,6 +323,14 @@ def main(screen, width):
                             node.updateNeighbours(grid)
                     started = True
                     bfs(lambda: draw(screen, grid), grid, start, end)
+                    started = False
+
+                if event.key == pygame.K_d and start and end:
+                    for row in grid:
+                        for node in row:
+                            node.updateNeighbours(grid)
+                    started = True
+                    dfs(lambda: draw(screen, grid), grid, start, end)
                     started = False
 
                 if event.key == pygame.K_c:
