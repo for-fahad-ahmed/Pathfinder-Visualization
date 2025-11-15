@@ -1,5 +1,5 @@
 from queue import PriorityQueue
-
+from queue import Queue
 import pygame
 
 pygame.init()
@@ -90,10 +90,7 @@ class Node:
         if self.column > 0 and not grid[self.row][self.column - 1].isBarrier():
             self.neighbours.append(grid[self.row][self.column - 1])
 
-    def __lt__(self, other):
-        return False
-
-def distance(p1, p2):
+def h_score(p1, p2):
     x1, y1 = p1
     x2, y2 = p2
     return abs(x1 - x2) + abs(y1 - y2)
@@ -107,7 +104,7 @@ def createGrid():
             grid[i].append(node)
     return grid
 
-def drawGrid(screen):
+def drawGridLines(screen):
     for i in range(ROWS):
         pygame.draw.line(screen, GRAY, (0, i * NODE_SIZE), (SCREEN_WIDTH, i * NODE_SIZE))
 
@@ -122,11 +119,11 @@ def draw(screen, grid):
         for node in row:
             node.draw(screen)
 
-    drawGrid(screen)
+    drawGridLines(screen)
     pygame.display.update()
 
 
-def getPositionFromClick(position):
+def getPositionOfClick(position):
     x, y = position
 
     row = y // NODE_SIZE
@@ -150,7 +147,7 @@ def ASTAR(draw, grid, start, end):
     g_score[start] = 0
 
     f_score = {node: float('inf') for row in grid for node in row}
-    f_score[start] = distance(start.getPosition(), end.getPosition())
+    f_score[start] = h_score(start.getPosition(), end.getPosition())
 
     open_set_hash = {start}
 
@@ -158,6 +155,7 @@ def ASTAR(draw, grid, start, end):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+                return False
 
         current = open_set.get()[2]
         open_set_hash.remove(current)
@@ -173,7 +171,7 @@ def ASTAR(draw, grid, start, end):
             if temp_g_score < g_score[neighbour]:
                 came_from[neighbour] = current
                 g_score[neighbour] = temp_g_score
-                f_score[neighbour] = temp_g_score + distance(neighbour.getPosition(), end.getPosition())
+                f_score[neighbour] = temp_g_score + h_score(neighbour.getPosition(), end.getPosition())
 
                 if neighbour not in open_set_hash:
                     count += 1
@@ -187,6 +185,44 @@ def ASTAR(draw, grid, start, end):
             current.makeClosed()
 
     return False
+
+def bfs(draw, grid, start, end):
+    visited = [[False for _ in range(COLUMNS)] for _ in range(ROWS)]
+    came_from = {}
+
+    to_be_visited = Queue()
+    to_be_visited.put(start)
+    visited[start.row][start.column] = True
+
+    while not to_be_visited.empty():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return False
+
+        current = to_be_visited.get()
+
+        if current == end:
+            reconstructPath(came_from, end, draw)
+            end.makeEnd()
+            return True
+
+
+        for neighbour in current.neighbours:
+            row, col = neighbour.row, neighbour.column
+
+            if not visited[row][col]:
+                visited[row][col] = True
+                came_from[neighbour] = current
+                to_be_visited.put(neighbour)
+
+                if neighbour != end:
+                    neighbour.makeOpen()
+
+        draw()
+
+        if current != start:
+            current.makeClosed()
 
 def main(screen, width):
     grid = createGrid()
@@ -209,7 +245,7 @@ def main(screen, width):
 
             if pygame.mouse.get_pressed()[0]:
                 position = pygame.mouse.get_pos()
-                row, column = getPositionFromClick(position)
+                row, column = getPositionOfClick(position)
                 node = grid[row][column]
 
                 if not start:
@@ -225,7 +261,7 @@ def main(screen, width):
 
             elif pygame.mouse.get_pressed()[2]:
                 position = pygame.mouse.get_pos()
-                row, column = getPositionFromClick(position)
+                row, column = getPositionOfClick(position)
                 node = grid[row][column]
                 node.reset()
 
@@ -240,8 +276,17 @@ def main(screen, width):
                     for row in grid:
                         for node in row:
                             node.updateNeighbours(grid)
-
+                    started = True
                     ASTAR(lambda: draw(screen, grid), grid, start, end)
+                    started = False
+
+                if event.key == pygame.K_b and start and end:
+                    for row in grid:
+                        for node in row:
+                            node.updateNeighbours(grid)
+                    started = True
+                    bfs(lambda: draw(screen, grid), grid, start, end)
+                    started = False
 
                 if event.key == pygame.K_c:
                     start = None
