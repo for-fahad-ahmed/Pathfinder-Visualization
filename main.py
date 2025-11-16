@@ -15,11 +15,11 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Pathfinder Visualization')
 
 WHITE = (255, 255, 255)
-CHARCOAL_BLACK = (20, 20, 20)
-EMERALD_GREEN = (0, 200, 120)
-CRIMSON_RED = (220, 50, 70)
-AQUA_BLUE = (0, 180, 255)
-ROYAL_PURPLE = (140, 85, 255)
+BLACK = (20, 20, 20)
+GREEN = (0, 200, 120)
+RED = (220, 50, 70)
+BLUE = (0, 180, 255)
+PURPLE = (140, 85, 255)
 GOLD = (255, 200, 0)
 GRAY = (180, 180, 180)
 
@@ -38,37 +38,37 @@ class Node:
         return self.row, self.column
 
     def isClosed(self):
-        return self.color == ROYAL_PURPLE
+        return self.color == PURPLE
 
     def isOpen(self):
-        return self.color == AQUA_BLUE
+        return self.color == BLUE
 
     def isBarrier(self):
-        return self.color == CHARCOAL_BLACK
+        return self.color == BLACK
 
     def isStart(self):
-        return self.color == EMERALD_GREEN
+        return self.color == GREEN
 
     def isEnd(self):
-        return self.color == CRIMSON_RED
+        return self.color == RED
 
     def reset(self):
         self.color = WHITE
 
     def makeStart(self):
-        self.color = EMERALD_GREEN
+        self.color = GREEN
 
     def makeClosed(self):
-        self.color = ROYAL_PURPLE
+        self.color = PURPLE
 
     def makeOpen(self):
-        self.color = AQUA_BLUE
+        self.color = BLUE
 
     def makeBarrier(self):
-        self.color = CHARCOAL_BLACK
+        self.color = BLACK
 
     def makeEnd(self):
-        self.color = CRIMSON_RED
+        self.color = RED
 
     def makePath(self):
         self.color = GOLD
@@ -89,6 +89,20 @@ class Node:
 
         if self.column > 0 and not grid[self.row][self.column - 1].isBarrier():
             self.neighbours.append(grid[self.row][self.column - 1])
+
+def displayStats(screen, algorithm_name, nodes_visited, path_length):
+    font = pygame.font.Font(None, 32)
+
+    stats_text = f"{algorithm_name} | Nodes Visited: {nodes_visited} | Path Length: {path_length}"
+    text_surface = font.render(stats_text, True, BLACK)
+
+    background = pygame.Surface((len(stats_text) * 12 + 20, 45))
+    background.set_alpha(200)
+    background.fill((220, 220, 220))
+
+    screen.blit(background, (10, 10))
+    screen.blit(text_surface, (15, 15))
+
 
 def h_score(p1, p2):
     x1, y1 = p1
@@ -112,7 +126,7 @@ def drawGridLines(screen):
         pygame.draw.line(screen, GRAY, (j * NODE_SIZE, 0), (j * NODE_SIZE, SCREEN_HEIGHT))
 
 
-def draw(screen, grid):
+def draw(screen, grid, stats=None):
     screen.fill(WHITE)
 
     for row in grid:
@@ -120,6 +134,10 @@ def draw(screen, grid):
             node.draw(screen)
 
     drawGridLines(screen)
+
+    if stats:
+        displayStats(screen, stats['name'], stats['visited'], stats['path'])
+
     pygame.display.update()
 
 
@@ -132,12 +150,17 @@ def getPositionOfClick(position):
     return row, column
 
 def reconstructPath(came_from, current, draw):
+    path_length = 0
     while current in came_from:
         current = came_from[current]
         current.makePath()
+        path_length += 1
         draw()
 
-def ASTAR(draw, grid, start, end):
+    return path_length
+
+def a_star(draw, grid, start, end):
+    no_of_nodes_visited = 0
     count = 0
     open_set = PriorityQueue()
     open_set.put((0, count, start))
@@ -155,15 +178,16 @@ def ASTAR(draw, grid, start, end):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return False
+                return False, 0, 0
 
         current = open_set.get()[2]
         open_set_hash.remove(current)
 
         if current == end:
-            reconstructPath(came_from, end, draw)
+            path_length = reconstructPath(came_from, end, draw)
             end.makeEnd()
-            return True
+            start.makeStart()
+            return True, no_of_nodes_visited, path_length
 
         for neighbour in current.neighbours:
             temp_g_score = g_score[current] + 1
@@ -183,10 +207,12 @@ def ASTAR(draw, grid, start, end):
 
         if current != start:
             current.makeClosed()
+            no_of_nodes_visited += 1
 
-    return False
+    return False, no_of_nodes_visited, 0
 
 def bfs(draw, grid, start, end):
+    no_of_nodes_visited = 0
     visited = [[False for _ in range(COLUMNS)] for _ in range(ROWS)]
     came_from = {}
 
@@ -198,14 +224,15 @@ def bfs(draw, grid, start, end):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return False
+                return False, 0, 0
 
         current = to_be_visited.get()
 
         if current == end:
-            reconstructPath(came_from, end, draw)
+            path_length = reconstructPath(came_from, end, draw)
             end.makeEnd()
-            return True
+            start.makeStart()
+            return True, no_of_nodes_visited, path_length
 
 
         for neighbour in current.neighbours:
@@ -223,9 +250,13 @@ def bfs(draw, grid, start, end):
 
         if current != start:
             current.makeClosed()
+            no_of_nodes_visited += 1
+
+    return False, no_of_nodes_visited, 0
 
 
 def dfs(draw, grid, start, end):
+    no_of_nodes_visited = 0
     stack = [start]
     visited = set()
     came_from = {}
@@ -235,7 +266,7 @@ def dfs(draw, grid, start, end):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return False
+                return False, 0, 0
 
         current = stack.pop()
 
@@ -243,9 +274,10 @@ def dfs(draw, grid, start, end):
             visited.add(current)
 
             if current == end:
-                reconstructPath(came_from, current, draw)
+                path_length = reconstructPath(came_from, current, draw)
                 end.makeEnd()
-                return True
+                start.makeStart()
+                return True, no_of_nodes_visited, path_length
 
             for neighbour in current.neighbours:
                 if neighbour not in visited:
@@ -257,8 +289,12 @@ def dfs(draw, grid, start, end):
 
             if current != start:
                 current.makeClosed()
+                no_of_nodes_visited += 1
 
             draw()
+
+    return False, no_of_nodes_visited, 0
+
 
 
 def main(screen, width):
@@ -269,9 +305,10 @@ def main(screen, width):
 
     is_running = True
     started = False
+    current_stats = None
 
     while is_running:
-        draw(screen, grid)
+        draw(screen, grid, current_stats)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -309,12 +346,15 @@ def main(screen, width):
                     end = None
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and start and end:
+                if event.key == pygame.K_a and start and end:
                     for row in grid:
                         for node in row:
                             node.updateNeighbours(grid)
                     started = True
-                    ASTAR(lambda: draw(screen, grid), grid, start, end)
+                    path_found, nodes_visited, path_length = a_star(lambda: draw(screen, grid, current_stats), grid, start, end)
+                    current_stats = {'name': 'A*', 'visited': nodes_visited, 'path': path_length}
+                    if not path_found:
+                        current_stats['path'] = "No path found"
                     started = False
 
                 if event.key == pygame.K_b and start and end:
@@ -322,7 +362,10 @@ def main(screen, width):
                         for node in row:
                             node.updateNeighbours(grid)
                     started = True
-                    bfs(lambda: draw(screen, grid), grid, start, end)
+                    path_found, nodes_visited, path_length = bfs(lambda: draw(screen, grid, current_stats), grid, start, end)
+                    current_stats = {'name': 'BFS', 'visited': nodes_visited, 'path': path_length}
+                    if not path_found:
+                        current_stats['path'] = "No path found"
                     started = False
 
                 if event.key == pygame.K_d and start and end:
@@ -330,7 +373,10 @@ def main(screen, width):
                         for node in row:
                             node.updateNeighbours(grid)
                     started = True
-                    dfs(lambda: draw(screen, grid), grid, start, end)
+                    path_found, nodes_visited, path_length = dfs(lambda: draw(screen, grid, current_stats), grid, start, end)
+                    current_stats = {'name': 'DFS', 'visited': nodes_visited, 'path': path_length}
+                    if not path_found:
+                        current_stats['path'] = "No path found"
                     started = False
 
                 if event.key == pygame.K_c:
