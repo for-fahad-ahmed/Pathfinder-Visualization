@@ -60,7 +60,7 @@ You can place start, end, and barrier nodes on a grid and watch the algorithms w
 ---
 
 # 3. Program Flow
-![Program Flow](Screenshot_20251116_155729.png)
+![Program Flow](images/program-flow.png)
 1. You place the start and end nodes on the grid.  
 2. You can add barriers by left-clicking empty spaces.  
 3. Right-click removes a node.  
