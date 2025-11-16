@@ -95,7 +95,7 @@ class Node:
 def show_instructions():
     root = tk.Tk()
     root.title("Key Mapping")
-    root.geometry("400x220")
+    root.geometry("450x220")
     instructions = [
         "KEY MAPPING:",
         "Left Click  - Place Start, End and Barriers",
@@ -104,7 +104,7 @@ def show_instructions():
         "B - Run BFS algorithm",
         "D - Run DFS algorithm",
         "C - Clear the grid",
-        "\n*After reading, Close this window"
+        "\n*After reading, Please close this window to proceed"
     ]
     for i, line in enumerate(instructions):
         label = tk.Label(root, text=line, font=("Arial", 12))
