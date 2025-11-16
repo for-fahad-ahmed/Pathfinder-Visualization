@@ -1,6 +1,8 @@
+import pygame
+import tkinter as tk
 from queue import PriorityQueue
 from queue import Queue
-import pygame
+
 
 pygame.init()
 
@@ -89,6 +91,28 @@ class Node:
 
         if self.column > 0 and not grid[self.row][self.column - 1].isBarrier():
             self.neighbours.append(grid[self.row][self.column - 1])
+
+def show_instructions():
+    root = tk.Tk()
+    root.title("Key Mapping")
+    root.geometry("400x220")
+    instructions = [
+        "KEY MAPPING:",
+        "Left Click  - Place Start, End and Barriers",
+        "Right Click - Remove node",
+        "A - Run A* algorithm",
+        "B - Run BFS algorithm",
+        "D - Run DFS algorithm",
+        "C - Clear the grid",
+        "\n*After reading, Close this window"
+    ]
+    for i, line in enumerate(instructions):
+        label = tk.Label(root, text=line, font=("Arial", 12))
+        label.pack(anchor="w")
+    root.mainloop()
+
+show_instructions()
+
 
 def displayStats(screen, algorithm_name, nodes_visited, path_length):
     font = pygame.font.Font(None, 32)
@@ -294,8 +318,6 @@ def dfs(draw, grid, start, end):
             draw()
 
     return False, no_of_nodes_visited, 0
-
-
 
 def main(screen, width):
     grid = createGrid()
